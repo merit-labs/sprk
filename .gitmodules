@@ -1,0 +1,3 @@
+[submodule "merit-common"]
+	path = merit-common
+	url = https://github.com/merit-labs/merit-common.git
