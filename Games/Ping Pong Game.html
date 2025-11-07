@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Pong Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A little bit of custom CSS to ensure elements are positioned precisely */
+        #ball {
+            /* Ensures the ball stays a circle even if width/height change */
+            border-radius: 50%; 
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen">
+
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Pong Challenge!</h1>
+
+    <div class="text-2xl font-semibold mb-4 text-green-700">
+        Score: <span id="score">0</span>
+    </div>
+
+    <div id="game-container" 
+         class="w-[400px] h-[400px] bg-gray-900 relative overflow-hidden border-4 border-white shadow-2xl">
+        
+        <div id="paddle" 
+             class="w-20 h-3 bg-blue-500 absolute bottom-0 transition-none"
+             style="left: 160px;">
+        </div>
+
+        <div id="ball" 
+             class="w-4 h-4 bg-yellow-400 absolute transition-none"
+             style="left: 198px; top: 198px;">
+        </div>
+
+    </div>
+
+    <p class="mt-4 text-gray-600">Use the **Left (←)** and **Right (→)** Arrow Keys to Move!</p>
+
+    <script>
+        // === Initial Setup Block (Variables & Linking) ===
+        const container = document.getElementById('game-container');
+        const paddle = document.getElementById('paddle');
+        const ball = document.getElementById('ball');
+        const scoreDisplay = document.getElementById('score');
+        
+        // Dimensions
+        const CONTAINER_WIDTH = 400;
+        const CONTAINER_HEIGHT = 400;
+        const PADDLE_WIDTH = 80;
+        const PADDLE_HEIGHT = 12;
+        const BALL_SIZE = 16;
+        
+        // Game State Variables
+        let score = 0;
+        let paddleX = 160; // Initial left position of the paddle
+        let ballX = 192;   // Initial X position of the ball
+        let ballY = 192;   // Initial Y position of the ball
+        let dx = 3;        // Ball speed and direction on the X axis
+        let dy = -3;       // Ball speed and direction on the Y axis
+        let paddleSpeed = 8; // **TWEAKING POINT 1: Paddle speed**
+        
+        // Keyboard Input Variables
+        let isMovingLeft = false;
+        let isMovingRight = false;
+        
+        
+        // === Keyboard Input Block (Event Handling) ===
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                isMovingLeft = true;
+            } else if (e.key === 'ArrowRight') {
+                isMovingRight = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') {
+                isMovingLeft = false;
+            } else if (e.key === 'ArrowRight') {
+                isMovingRight = false;
+            }
+        });
+
+        // === Movement & Game Logic Block (The Brain) ===
+        function updateGame() {
+            // --- 1. Move Paddle ---
+            if (isMovingLeft && paddleX > 0) {
+                paddleX -= paddleSpeed;
+            }
+            if (isMovingRight && paddleX < CONTAINER_WIDTH - PADDLE_WIDTH) {
+                paddleX += paddleSpeed;
+            }
+            
+            // Apply new position to HTML element
+            paddle.style.left = paddleX + 'px';
+
+            // --- 2. Move Ball ---
+            ballX += dx;
+            ballY += dy;
+            
+            // Apply new position to HTML element
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+
+            // --- 3. Collision Block (The Bounces) ---
+
+            // **Top and Side Wall Bounces**
+            if (ballX + BALL_SIZE > CONTAINER_WIDTH || ballX < 0) {
+                dx = -dx; // Reverse X direction (side walls)
+            }
+            if (ballY < 0) {
+                dy = -dy; // Reverse Y direction (top wall)
+            }
+
+            // **Paddle Bounce** (Complex Conditional Logic)
+            if (
+                ballY + BALL_SIZE >= CONTAINER_HEIGHT - PADDLE_HEIGHT && // Ball near the bottom
+                ballX + BALL_SIZE > paddleX &&                           // Ball within paddle's left edge
+                ballX < paddleX + PADDLE_WIDTH                           // Ball within paddle's right edge
+            ) {
+                dy = -dy; // Reverse Y direction
+                // === Score Update Block ===
+                score++;
+                scoreDisplay.textContent = score;
+            }
+
+            // **Game Over (Missed Ball)**
+            if (ballY + BALL_SIZE > CONTAINER_HEIGHT) {
+                alert(`Game Over! Final Score: ${score}`);
+                resetGame();
+                return; // Stop the game loop
+            }
+
+            // === Game Loop Block (The Heartbeat) ===
+            requestAnimationFrame(updateGame);
+        }
+
+        // --- Helper Function to Reset Game ---
+        function resetGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            paddleX = 160;
+            ballX = 192;
+            ballY = 192;
+            // Optionally, add a slight randomness to the starting direction
+            dx = (Math.random() > 0.5 ? 3 : -3); 
+            dy = -3; 
+
+            // Start the game again after a brief pause
+            setTimeout(() => {
+                requestAnimationFrame(updateGame);
+            }, 1000); 
+        }
+
+        // Start the game!
+        requestAnimationFrame(updateGame);
+
+    </script>
+</body>
+</html>

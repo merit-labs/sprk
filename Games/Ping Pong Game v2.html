@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Pong Arcade Game</title>
+    
+    <!-- 1. STYLE: Load Tailwind CSS for easy, modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the game elements */
+        #game-container {
+            /* Ensures the game arena is perfectly centered */
+            transform-style: preserve-3d;
+        }
+        #ball {
+            /* Makes the ball a perfect circle */
+            border-radius: 50%; 
+        }
+        /* Custom font for a game feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen">
+
+    <h1 class="text-4xl font-extrabold mb-4 text-green-400">AI Powered Pong Arcade</h1>
+
+    <!-- SCOREBOARD BLOCK -->
+    <div class="text-2xl font-mono mb-4 text-white">
+        SCORE: <span id="score">0</span>
+    </div>
+
+    <!-- 2. HTML: The Game Arena (The world boundary) -->
+    <div id="game-container" 
+         class="w-[400px] h-[400px] bg-gray-900 relative overflow-hidden border-8 border-green-600 rounded-lg shadow-2xl">
+        
+        <!-- PLAYER PADDLE BLOCK (The object we move with the keyboard) -->
+        <div id="paddle" 
+             class="w-20 h-3 bg-blue-500 absolute bottom-0 transition-none rounded-full shadow-lg"
+             style="left: 160px;">
+        </div>
+
+        <!-- GAME BALL BLOCK (The object we control with math) -->
+        <div id="ball" 
+             class="w-4 h-4 bg-yellow-300 absolute transition-none shadow-md"
+             style="left: 198px; top: 198px;">
+        </div>
+
+    </div>
+
+    <p class="mt-4 text-gray-400 text-lg">Use the **Left (←)** and **Right (→)** Arrow Keys to Move!</p>
+
+    <!-- 
+        ====================================================================
+        JAVASCRIPT (The Engine) - AI-Generated Core Logic
+        ==================================================================== 
+    -->
+    <script>
+        
+        /*****************************************************************************
+         * TWEAKING CHALLENGES
+         * * The goal is to modify the engine's behavior by changing only a few lines.
+         *****************************************************************************/
+
+        // ---------------------------------------------------------------------------
+        // CHALLENGE SET 1: Tweak the Variables (The "Settings" Menu)
+        // ---------------------------------------------------------------------------
+        // These are the easiest changes. Find the corresponding lines below and change
+        // the numeric values to see immediate, dramatic effects on gameplay.
+        // 
+        // 1. **Paddle Speed:** Change the paddle's movement distance per frame. (See P-1)
+        // 2. **Ball Speed:** Change the initial speed of the ball (dx, dy). (See P-2)
+        // 3. **Visual Style:** Change the colors/sizes in the HTML/CSS blocks above.
+        // ---------------------------------------------------------------------------
+
+
+        // ---------------------------------------------------------------------------
+        // CHALLENGE SET 2: Tweak the Logic (The "Rules" Menu)
+        // ---------------------------------------------------------------------------
+        // These changes require modifying or adding to the core IF/ELSE logic.
+        // 
+        // 1. **Remove Top Wall Bounce:** Find the collision logic for the top wall (See P-3) 
+        //    and DELETE the line `dy = -dy;` to see what happens when the rule is removed.
+        // 2. **Non-Mirrored Bounce (Spin):** When the ball hits the paddle, instead of 
+        //    a perfect mirror bounce, make the X-direction slightly random to simulate spin. 
+        //    UNCOMMENT the extra code block at P-4.
+        // 3. **Speed Boost Obstacle:** Make the ball faster every time it hits the paddle. (See P-5)
+        // ---------------------------------------------------------------------------
+
+
+        // ---------------------------------------------------------------------------
+        // CHALLENGE SET 3: Turn into a "Bricks" Game (The "Goal Change")
+        // ---------------------------------------------------------------------------
+        // This is a major structural change. Instead of "Game Over" on a miss, we'll
+        // change the goal to require 10 hits (Score 10) to win!
+        // 
+        // 1. **Change Win Condition:** Find the Game Over logic (See P-6) and COMMENT OUT 
+        //    the `alert("Game Over...")` code.
+        // 2. **Add Win Check:** Add new IF logic inside the Game Over block to check if 
+        //    `score >= 10`. If true, display a "YOU WIN!" message and call `resetGame()`.
+        // ---------------------------------------------------------------------------
+        
+
+        // === 3. SETUP BLOCK (Variables & Linking) ===
+        const container = document.getElementById('game-container');
+        const paddle = document.getElementById('paddle');
+        const ball = document.getElementById('ball');
+        const scoreDisplay = document.getElementById('score');
+        
+        // Dimensions (Fixed sizes of the game elements in pixels)
+        const CONTAINER_WIDTH = 400;
+        const CONTAINER_HEIGHT = 400;
+        const PADDLE_WIDTH = 80;
+        const PADDLE_HEIGHT = 12;
+        const BALL_SIZE = 16;
+        
+        // Game State Variables (These change constantly)
+        let score = 0;
+        let paddleX = 160; 
+        let ballX = 192;   
+        let ballY = 192;   
+        
+        // P-2: TWEAK POINT: Ball Speed/Initial Angle
+        let dx = 3;        // Ball speed and direction on the X axis (Horizontal)
+        let dy = -3;       // Ball speed and direction on the Y axis (Vertical)
+        
+        // P-1: TWEAK POINT: Paddle Speed
+        let paddleSpeed = 8; // **CHALLENGE 1:** Change this number! (e.g., to 20 or 2)
+        
+        // Keyboard Input Variables (Simple flags to track which key is held down)
+        let isMovingLeft = false;
+        let isMovingRight = false;
+        
+        
+        // === 4. KEYBOARD INPUT BLOCK (Event Handling) ===
+        // This code runs ONLY when a key is pressed or released.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                isMovingLeft = true; // Set the flag to true
+            } else if (e.key === 'ArrowRight') {
+                isMovingRight = true; // Set the flag to true
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') {
+                isMovingLeft = false; // Set the flag back to false
+            } else if (e.key === 'ArrowRight') {
+                isMovingRight = false; // Set the flag back to false
+            }
+        });
+
+        // === 5. MOVEMENT & GAME LOGIC BLOCK (The Brain) ===
+        function updateGame() {
+            // --- 5a. Move Paddle Logic ---
+            if (isMovingLeft && paddleX > 0) {
+                paddleX -= paddleSpeed;
+            }
+            if (isMovingRight && paddleX < CONTAINER_WIDTH - PADDLE_WIDTH) {
+                paddleX += paddleSpeed;
+            }
+            
+            // Apply new position to HTML element using CSS
+            paddle.style.left = paddleX + 'px';
+
+            // --- 5b. Move Ball Logic ---
+            ballX += dx; // Update horizontal position
+            ballY += dy; // Update vertical position
+            
+            // Apply new position to HTML element using CSS
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+
+            // --- 5c. Collision Block (The Bounces - The Core IF/ELSE) ---
+
+            // **Side Wall Bounces** (Left and Right)
+            if (ballX + BALL_SIZE > CONTAINER_WIDTH || ballX < 0) {
+                dx = -dx; // Reverse X direction
+            }
+            
+            // **Top Wall Bounce**
+            if (ballY < 0) {
+                // P-3: CHALLENGE 2 TWEAK: Remove the next line to stop top wall bounce!
+                dy = -dy; // Reverse Y direction
+            }
+
+            // **Paddle Bounce** (Complex conditional logic)
+            if (
+                ballY + BALL_SIZE >= CONTAINER_HEIGHT - PADDLE_HEIGHT && // Is the ball low enough?
+                ballY < CONTAINER_HEIGHT - PADDLE_HEIGHT &&             // Prevent double-bounce glitch
+                ballX + BALL_SIZE > paddleX &&                           // Is the ball past the paddle's left edge?
+                ballX < paddleX + PADDLE_WIDTH                           // Is the ball before the paddle's right edge?
+            ) {
+                dy = -dy; // Reverse Y direction (The bounce!)
+                
+                // P-4: CHALLENGE 2 TWEAK: Uncomment this section for a Non-Mirrored (Spin) Bounce!
+                /*
+                // Add a slight random factor to the horizontal direction (dx)
+                let randomFactor = (Math.random() - 0.5) * 2; // Value between -1 and 1
+                dx += randomFactor;
+                // Cap the maximum speed to prevent it from getting too fast
+                dx = Math.min(Math.max(dx, -8), 8); 
+                */
+
+
+                // === Score Update & Speed Boost Block ===
+                score++;
+                scoreDisplay.textContent = score;
+
+                // P-5: CHALLENGE 2 TWEAK: Uncomment this to create a Speed Boost "Obstacle"
+                /*
+                // Every time the paddle is hit, increase the speed
+                dx *= 1.05; 
+                dy *= 1.05; 
+                */
+            }
+
+            // **Game Over / Win Condition**
+            if (ballY + BALL_SIZE > CONTAINER_HEIGHT) {
+                // P-6: CHALLENGE 3 TWEAK: Comment out the next line to prevent Game Over on miss
+                alert(`Game Over! Final Score: ${score}`);
+                
+                // P-6: CHALLENGE 3 TWEAK: UNCOMMENT this block to set a WIN CONDITION
+                /*
+                if (score >= 10) {
+                    alert(`CONGRATULATIONS! You reached ${score} hits!`);
+                } 
+                */
+
+                resetGame();
+                return; // Stop the loop for now
+            }
+
+            // === 6. GAME LOOP BLOCK (The Heartbeat) ===
+            // This tells the browser: "Run this function again on the next available screen refresh."
+            requestAnimationFrame(updateGame);
+        }
+
+        // --- Helper Function to Reset Game ---
+        function resetGame() {
+            score = 0;
+            scoreDisplay.textContent = score;
+            paddleX = 160;
+            ballX = 192;
+            ballY = 192;
+            
+            // Reset speed to initial values (P-2 TWEAK VALUES)
+            dx = 3; 
+            dy = -3; 
+
+            // Start the game again after a brief pause
+            setTimeout(() => {
+                requestAnimationFrame(updateGame);
+            }, 1000); 
+        }
+
+        // Start the game! This is the first call to the main loop.
+        requestAnimationFrame(updateGame);
+
+    </script>
+</body>
+</html>
